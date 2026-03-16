@@ -1,0 +1,108 @@
+{{- define "qualys-ca.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "qualys-ca.fullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "qualys-ca.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "qualys-ca.labels" -}}
+helm.sh/chart: {{ include "qualys-ca.chart" . }}
+{{ include "qualys-ca.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{- define "qualys-ca.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "qualys-ca.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- define "qualys-ca.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "qualys-ca.fullname" .) .Values.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{- define "qualys-ca.secretName" -}}
+{{- if .Values.credentials.existingSecret }}
+{{- .Values.credentials.existingSecret }}
+{{- else }}
+{{- include "qualys-ca.fullname" . }}-credentials
+{{- end }}
+{{- end }}
+
+{{/*
+Security context based on privilege mode.
+*/}}
+{{- define "qualys-ca.securityContext" -}}
+{{- if eq .Values.privilegeMode "unprivileged" }}
+privileged: false
+runAsNonRoot: true
+runAsUser: 65534
+readOnlyRootFilesystem: true
+allowPrivilegeEscalation: false
+seccompProfile:
+  type: RuntimeDefault
+capabilities:
+  drop: ["ALL"]
+  add: ["DAC_READ_SEARCH"]
+{{- else if eq .Values.privilegeMode "minimal" }}
+privileged: false
+runAsNonRoot: false
+readOnlyRootFilesystem: false
+allowPrivilegeEscalation: false
+seccompProfile:
+  type: RuntimeDefault
+capabilities:
+  drop: ["ALL"]
+  add: ["SYS_PTRACE"]
+{{- else if eq .Values.privilegeMode "standard" }}
+privileged: false
+runAsNonRoot: false
+readOnlyRootFilesystem: false
+allowPrivilegeEscalation: true
+seccompProfile:
+  type: Unconfined
+capabilities:
+  drop: ["ALL"]
+  add: ["SYS_ADMIN", "SYS_PTRACE", "SYS_CHROOT", "DAC_READ_SEARCH"]
+{{- else }}
+privileged: true
+runAsUser: 0
+runAsNonRoot: false
+readOnlyRootFilesystem: false
+allowPrivilegeEscalation: true
+seccompProfile:
+  type: Unconfined
+capabilities:
+  drop: ["ALL"]
+  add: ["SYS_ADMIN", "SYS_CHROOT", "SYS_PTRACE"]
+{{- end }}
+{{- end }}
+
+{{/*
+PSA level based on privilege mode.
+*/}}
+{{- define "qualys-ca.psaLevel" -}}
+{{- if eq .Values.privilegeMode "unprivileged" }}baseline
+{{- else }}privileged
+{{- end }}
+{{- end }}

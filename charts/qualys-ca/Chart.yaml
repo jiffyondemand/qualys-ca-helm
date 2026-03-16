@@ -1,0 +1,39 @@
+apiVersion: v2
+name: qualys-ca
+description: Qualys Cloud Agent Kubernetes Bootstrapper - Installs agent on worker nodes
+type: application
+version: 3.1.0
+appVersion: "2.1.0"
+keywords:
+  - qualys
+  - security
+  - vulnerability
+  - scanning
+  - agent
+  - bootstrapper
+home: https://github.com/nelssec/qualys-ca-helm
+sources:
+  - https://github.com/nelssec/qualys-ca-helm
+  - https://github.com/nelssec/qualys-cloudagentbuilder
+maintainers:
+  - name: Andrew Nelson
+    email: anelson@qualys.com
+annotations:
+  category: Security
+  licenses: Apache-2.0
+  artifacthub.io/changes: |
+    - kind: changed
+      description: Switched to bootstrapper model - installs agent on host nodes
+    - kind: added
+      description: Multi-architecture support (x86_64 and ARM64)
+    - kind: added
+      description: NetworkPolicy for egress restrictions
+    - kind: added
+      description: Pod Security Standards labels
+    - kind: added
+      description: Minimal mount strategy for security
+    - kind: removed
+      description: CronJob auto-update (agent updates via new image builds)
+    - kind: security
+      description: Credentials never logged, config files mode 600
+  artifacthub.io/prerelease: "false"

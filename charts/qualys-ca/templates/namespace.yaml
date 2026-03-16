@@ -1,0 +1,11 @@
+{{- if .Values.namespace.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace.name }}
+  labels:
+    {{- include "qualys-ca.labels" . | nindent 4 }}
+    pod-security.kubernetes.io/enforce: {{ include "qualys-ca.psaLevel" . }}
+    pod-security.kubernetes.io/warn: {{ include "qualys-ca.psaLevel" . }}
+    pod-security.kubernetes.io/audit: {{ include "qualys-ca.psaLevel" . }}
+{{- end }}
