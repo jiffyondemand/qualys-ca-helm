@@ -162,6 +162,8 @@ Proxy URL format: `https://[username:password@]host[:port]`
 |-----------|-------------|---------|
 | `credentials.existingSecret` | Use existing secret | `""` |
 | `networkPolicy.enabled` | Enable NetworkPolicy | `true` |
+| `registration.enabled` | Register agent via host `qualys-cloud-agent.sh` (required for agent 7.x) | `true` |
+| `registration.waitTimeoutSeconds` | Max wait for installer before registering | `600` |
 | `priorityClassName` | Pod priority class | `system-node-critical` |
 | `resources.requests.cpu` | CPU request | `100m` |
 | `resources.requests.memory` | Memory request | `128Mi` |

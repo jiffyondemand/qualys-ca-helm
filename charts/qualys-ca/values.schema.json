@@ -65,6 +65,24 @@
           "default": true
         }
       }
+    },
+    "registration": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Register the agent via the host's qualys-cloud-agent.sh after install (required for agent 7.x)"
+        },
+        "waitTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 30,
+          "default": 600
+        },
+        "resources": {
+          "type": "object"
+        }
+      }
     }
   }
 }

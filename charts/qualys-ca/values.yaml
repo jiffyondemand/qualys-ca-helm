@@ -83,6 +83,20 @@ affinity: {}
 
 priorityClassName: "system-node-critical"
 
+# Registers the agent with the host's qualys-cloud-agent.sh after install.
+# Required for agent 7.x: it reads ActivationId/CustomerId from its config DB,
+# which the bootstrapper image's install.sh does not populate.
+registration:
+  enabled: true
+  waitTimeoutSeconds: 600
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
 networkPolicy:
   enabled: true
   # Additional egress rules for proxy servers
