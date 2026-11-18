@@ -5,6 +5,20 @@ All notable changes to the Qualys Cloud Agent Helm chart will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 2026-11-12
+
+### Fixed
+- **Agent never provisions on agent 7.x** (`Provision event skipped: null customerID`,
+  `CAPI event failed`). The bootstrapper's `install.sh` writes ActivationId/CustomerId
+  to the `[Startup]` section of `qualys-cloud-agent.conf`, but the agent reads them from
+  its config DB, which stays at all-zero IDs.
+
+### Added
+- `qualys-agent-registrar` container (`registration.enabled`, default `true`): waits for
+  the installer, then runs the host's `qualys-cloud-agent.sh ActivationId=... CustomerId=...
+  ServerUri=... LogLevel=...` to populate the config DB. Skips if `/etc/qualys/hostid` is
+  already populated. Credentials are redacted from its log output.
+
 ## [3.1.0] - 2026-01-06
 
 ### Added

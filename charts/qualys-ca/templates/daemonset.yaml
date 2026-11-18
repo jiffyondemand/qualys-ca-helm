@@ -312,6 +312,75 @@ spec:
               - /bin/bash
               - -c
               - "nsenter --target 1 --mount --uts --ipc --net --pid -- systemctl stop qualys-cloud-agent 2>/dev/null || true"
+      {{- if .Values.registration.enabled }}
+      # Agent 7.x reads ActivationId/CustomerId/ServerUri from its config DB, not
+      # from the [Startup] section install.sh writes to qualys-cloud-agent.conf.
+      # Without this step the agent logs "Provision event skipped: null customerID".
+      # This container waits for the installer, then registers the agent with the
+      # host's own qualys-cloud-agent.sh, which populates the config DB.
+      - name: qualys-agent-registrar
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+          {{- include "qualys-ca.securityContext" . | nindent 10 }}
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -euo pipefail
+          host() { nsenter --target 1 --mount --uts --ipc --net --pid -- "$@"; }
+          redact() { sed -E 's/[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}/<redacted>/g'; }
+          SETUP=/usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh
+          TIMEOUT={{ .Values.registration.waitTimeoutSeconds }}
+
+          echo "Waiting up to ${TIMEOUT}s for the installer to install and start qualys-cloud-agent..."
+          ELAPSED=0
+          until host test -x "$SETUP" && host systemctl is-active --quiet qualys-cloud-agent; do
+            if [[ $ELAPSED -ge $TIMEOUT ]]; then
+              echo "ERROR: agent not installed/active after ${TIMEOUT}s; check the qualys-agent-installer container logs"
+              exit 1
+            fi
+            sleep 5
+            ELAPSED=$((ELAPSED + 5))
+          done
+
+          if host test -s /etc/qualys/hostid; then
+            echo "Agent already provisioned (/etc/qualys/hostid present); skipping registration."
+          else
+            echo "Registering agent via $SETUP (credentials redacted)..."
+            host "$SETUP" \
+              ActivationId="$ACTIVATION_ID" \
+              CustomerId="$CUSTOMER_ID" \
+              ServerUri="$SERVER_URI" \
+              LogLevel="$LOG_LEVEL" 2>&1 | redact
+            echo "Registration complete. Provisioning happens on the agent's next CAPI event (~100s)."
+          fi
+
+          while true; do sleep 3600; done
+        env:
+        - name: ACTIVATION_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "qualys-ca.secretName" . }}
+              key: ACTIVATION_ID
+        - name: CUSTOMER_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "qualys-ca.secretName" . }}
+              key: CUSTOMER_ID
+        - name: SERVER_URI
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "qualys-ca.fullname" . }}-config
+              key: SERVER_URI
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "qualys-ca.fullname" . }}-config
+              key: LOG_LEVEL
+        resources:
+          {{- toYaml .Values.registration.resources | nindent 10 }}
+      {{- end }}
       volumes:
       - name: host-tmp
         hostPath:
